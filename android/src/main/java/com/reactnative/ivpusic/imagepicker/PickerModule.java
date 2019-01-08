@@ -31,6 +31,7 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.PermissionAwareActivity;
 import com.facebook.react.modules.core.PermissionListener;
+import com.theartofdev.edmodo.cropper.CropImage;
 import com.yalantis.ucrop.UCrop;
 import com.yalantis.ucrop.UCropActivity;
 
@@ -610,15 +611,19 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
             configureCropperColors(options);
         }
 
-        UCrop uCrop = UCrop
-                .of(uri, Uri.fromFile(new File(this.getTmpDir(activity), UUID.randomUUID().toString() + ".jpg")))
-                .withOptions(options);
+        // UCrop uCrop = UCrop
+        //         .of(uri, Uri.fromFile(new File(this.getTmpDir(activity), UUID.randomUUID().toString() + ".jpg")))
+        //         .withOptions(options);
 
-        if (width > 0 && height > 0) {
-            uCrop.withMaxResultSize(width, height).withAspectRatio(width, height);
-        }
+        // if (width > 0 && height > 0) {
+        //     uCrop.withMaxResultSize(width, height).withAspectRatio(width, height);
+        // }
 
-        uCrop.start(activity);
+        // uCrop.start(activity);
+        CropImage.activity(uri)
+            .setInitialCropWindowPaddingRatio(0)
+            .setFixAspectRatio(true)
+            .start(getCurrentActivity());
     }
 
     private void imagePickerResult(Activity activity, final int requestCode, final int resultCode, final Intent data) {
@@ -719,6 +724,23 @@ class PickerModule extends ReactContextBaseJavaModule implements ActivityEventLi
             cameraPickerResult(activity, requestCode, resultCode, data);
         } else if (requestCode == UCrop.REQUEST_CROP) {
             croppingResult(activity, requestCode, resultCode, data);
+        } else if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            if (resultCode == Activity.RESULT_OK) {
+                Uri resultUri = result.getUri();
+                if (resultUri != null) {
+                    try {
+                        // resultCollector.setWaitCount(1);
+                        resultCollector.notifySuccess(getSelection(activity, resultUri, false));
+                    } catch (Exception ex) {
+                        resultCollector.notifyProblem(E_NO_IMAGE_DATA_FOUND, ex.getMessage());
+                    }
+                } else {
+                    resultCollector.notifyProblem(E_NO_IMAGE_DATA_FOUND, "Cannot find image data");
+                }
+            } else /* if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) */ {
+                resultCollector.notifyProblem(E_PICKER_CANCELLED_KEY, E_PICKER_CANCELLED_MSG);
+            }
         }
     }
 
